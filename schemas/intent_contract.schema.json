@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intent_contract.schema.json",
+  "title": "Intent Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version", "status", "raw_intent", "objective", "subject",
+    "deliverables", "scope", "constraints", "authoritative_inputs",
+    "side_effects", "acceptance_criteria", "resolved_from_context",
+    "assumptions", "uncertainties", "owner_id"
+  ],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "status": { "type": "string", "enum": ["draft", "frozen", "superseded"] },
+    "owner_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the actor this intent belongs to. approve_workflow/execute_workflow/check_completion refuse to act on an intent for a caller whose actor_id doesn't match this — the fix for MOVA's AUTHN-003 class of bug (contract silently overwritten/operated on by someone other than its owner)."
+    },
+    "raw_intent": { "type": "string", "minLength": 1 },
+    "objective": { "type": "string", "minLength": 1 },
+    "subject": { "type": "string", "minLength": 1 },
+    "deliverables": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/deliverable" }
+    },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["included", "excluded"],
+      "properties": {
+        "included": { "type": "array", "items": { "type": "string" } },
+        "excluded": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" } },
+    "authoritative_inputs": {
+      "type": "array", "items": { "$ref": "#/$defs/authoritativeInput" }
+    },
+    "side_effects": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requested", "forbidden"],
+      "properties": {
+        "requested": { "type": "array", "items": { "type": "string" } },
+        "forbidden": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/acceptanceCriterion" }
+    },
+    "resolved_from_context": {
+      "type": "array", "items": { "$ref": "#/$defs/contextResolution" }
+    },
+    "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } },
+    "uncertainties": {
+      "type": "object", "additionalProperties": false,
+      "required": ["blocking", "non_blocking", "residual"],
+      "properties": {
+        "blocking": { "type": "array", "items": { "$ref": "#/$defs/uncertainty" } },
+        "non_blocking": { "type": "array", "items": { "$ref": "#/$defs/uncertainty" } },
+        "residual": { "type": "array", "items": { "$ref": "#/$defs/uncertainty" } }
+      }
+    }
+  },
+  "$defs": {
+    "deliverable": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^D-[0-9]+$" },
+        "description": { "type": "string", "minLength": 1 },
+        "format": { "type": ["string", "null"] }
+      }
+    },
+    "constraint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description", "blocking"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^C-[0-9]+$" },
+        "description": { "type": "string" },
+        "blocking": { "type": "boolean" }
+      }
+    },
+    "authoritativeInput": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source", "role"],
+      "properties": {
+        "source": { "type": "string" },
+        "role": { "type": "string" }
+      }
+    },
+    "acceptanceCriterion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description", "required", "verification_method"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^AC-[0-9]+$" },
+        "description": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "verification_method": {
+          "type": "string",
+          "description": "Free-form label for humans/prompts, e.g. 'pytest', 'manual review'. Use the sibling 'automation' field to tell the runtime how to check it."
+        },
+        "automation": {
+          "type": "string",
+          "enum": ["mechanical", "manual"],
+          "default": "manual",
+          "description": "'mechanical' = the runtime independently verifies this (test exit code, file diff, external check) and NEVER trusts the model's self-report for it. 'manual' = model's report is accepted but flagged for human review."
+        },
+        "manual_justification": {
+          "type": ["string", "null"],
+          "description": "Required (non-empty) whenever automation='manual' and required=true — enforced by contracts.py, not just this schema, because a cross-field rule can't be a plain JSON Schema 'required'. Mirrors MOVA's confidence_hint/evidence_basis consistency check: a self-report label ('this can't be automated') must come with a stated reason, so an evasive 'manual' tag is visible at audit time instead of indistinguishable from a genuine one."
+        }
+      }
+    },
+    "contextResolution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["field", "value", "source", "rationale", "confidence"],
+      "properties": {
+        "field": { "type": "string" },
+        "value": { "type": ["string", "number", "boolean", "null"] },
+        "source": { "type": "string" },
+        "rationale": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "assumption": {
+      "type": "object", "additionalProperties": false,
+      "required": ["description", "materiality", "confirmed"],
+      "properties": {
+        "description": { "type": "string" },
+        "materiality": { "type": "string", "enum": ["non_material", "material", "blocking"] },
+        "confirmed": { "type": "boolean" }
+      }
+    },
+    "uncertainty": {
+      "type": "object", "additionalProperties": false,
+      "required": ["field", "description"],
+      "properties": {
+        "field": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}
