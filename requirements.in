@@ -1,5 +1,5 @@
 anthropic>=0.40.0,<1
-openai>=1.60.0,<2
+openai>=2.50.0,<3
 python-dotenv>=1.0.1,<2
 jsonschema>=4.20.0,<5
 keyring>=25.0.0,<26
