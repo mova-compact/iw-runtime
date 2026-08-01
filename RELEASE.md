@@ -3,8 +3,9 @@
 ## Release
 
 1. Update the version in `pyproject.toml` and describe contract/schema changes.
-2. Regenerate both locks with `pip-compile --generate-hashes`; use
-   `--allow-unsafe --strip-extras` for the dev lock.
+2. Regenerate both cross-platform locks with
+   `uv pip compile --universal --generate-hashes requirements.in -o requirements.txt`
+   and `uv pip compile --universal --generate-hashes requirements-dev.in -o requirements-dev.txt`.
 3. Run `python scripts/check_release.py`, Ruff, Bandit, pip-audit, and
    `python -m scripts.docker_e2e`.
 4. Merge only after all required CI jobs pass.

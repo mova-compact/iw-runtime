@@ -5,4 +5,4 @@ ruff>=0.12,<1
 bandit>=1.8,<2
 pip-audit>=2.9,<3
 cyclonedx-bom>=6.0,<8
-pip-tools>=7.4,<8
+uv>=0.11,<1
